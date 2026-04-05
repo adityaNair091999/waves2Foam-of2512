@@ -56,7 +56,7 @@ Description
 #include "cellCellStencilObject.H"
 #include "localMin.H"
 #include "oversetAdjustPhi.H"
-#include "oversetPatchPhiErr.H"
+// oversetPatchPhiErr.H not available in v2206 (introduced in later versions)
 
 #include "relaxationZone.H"
 #include "externalWaveForcing.H"
