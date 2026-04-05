@@ -25,7 +25,7 @@
 
     if (adjustFringe)
     {
-        oversetAdjustPhi(phiHbyA, U, zoneIdMass);
+        oversetAdjustPhi(phiHbyA, U);
     }
 
     // Update the pressure BCs to ensure flux consistency

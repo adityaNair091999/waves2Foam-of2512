@@ -36,7 +36,7 @@ Description
     with overset (chimera) mesh support and waves2Foam wave generation /
     absorption via relaxation zones.
 
-    Based on overInterDyMFoam with waves2Foam (relaxationZone +
+    Based on overInterDyMFoam (v2206) with waves2Foam (relaxationZone +
     externalWaveForcing) additions.
 
 \*---------------------------------------------------------------------------*/
@@ -52,11 +52,14 @@ Description
 #include "turbulentTransportModel.H"
 #include "pimpleControl.H"
 #include "fvOptions.H"
+#include "CorrectPhi.H"
 #include "fvcSmooth.H"
 #include "cellCellStencilObject.H"
 #include "localMin.H"
+#include "interpolationCellPoint.H"
+#include "transform.H"
+#include "fvMeshSubset.H"
 #include "oversetAdjustPhi.H"
-// oversetPatchPhiErr.H not available in v2206 (introduced in later versions)
 
 #include "relaxationZone.H"
 #include "externalWaveForcing.H"
@@ -79,6 +82,8 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
     #include "initContinuityErrs.H"
+    pimpleControl pimple(mesh);
+    #include "createTimeControls.H"
 
     #include "readGravitationalAcceleration.H"
     #include "readWaveProperties.H"
@@ -103,8 +108,11 @@ int main(int argc, char *argv[])
         dimensionedScalar("rAUf", dimTime/rho.dimensions(), 1.0)
     );
 
+    if (correctPhi)
+    {
+        #include "correctPhi.H"
+    }
     #include "createUf.H"
-    #include "createControls.H"
 
     #include "setCellMask.H"
     #include "setInterpolatedCells.H"
@@ -122,8 +130,7 @@ int main(int argc, char *argv[])
 
     while (runTime.run())
     {
-        #include "readDyMControls.H"
-        #include "readOversetDyMControls.H"
+        #include "readControls.H"
 
         if (LTS)
         {
@@ -157,20 +164,55 @@ int main(int argc, char *argv[])
                         << runTime.elapsedCpuTime() - timeBeforeMeshUpdate
                         << " s" << endl;
 
+                    // Do not apply previous time-step mesh compression flux
+                    // if the mesh topology changed
                     if (mesh.topoChanging())
                     {
                         talphaPhi1Corr0.clear();
                     }
 
-                    // Update cellMask field for blocking out hole cells
-                    #include "setCellMask.H"
-                    #include "setInterpolatedCells.H"
-                    #include "correctPhiFaceMask.H"
-
                     gh = g & (mesh.C() - referencePoint);
                     ghf = g & (mesh.Cf() - referencePoint);
 
+                    // Update cellMask field for blocking out hole cells
+                    #include "setCellMask.H"
+                    #include "setInterpolatedCells.H"
+
+                    const surfaceScalarField faceMaskOld
+                    (
+                        localMin<scalar>(mesh).interpolate(cellMask.oldTime())
+                    );
+
+                    // Zero Uf on old faceMask (H-I)
+                    Uf *= faceMaskOld;
+
+                    const surfaceVectorField Uint(fvc::interpolate(U));
+                    // Update Uf and phi on new C-I faces
+                    Uf += (1-faceMaskOld)*Uint;
+
+                    // Update Uf boundary
+                    forAll(Uf.boundaryField(), patchI)
+                    {
+                        Uf.boundaryFieldRef()[patchI] =
+                            Uint.boundaryField()[patchI];
+                    }
+
+                    phi = mesh.Sf() & Uf;
+
+                    if (correctPhi)
+                    {
+                        #include "correctPhi.H"
+                    }
+
                     mixture.correct();
+
+                    // Zero phi on current H-I
+                    const surfaceScalarField faceMask
+                    (
+                        localMin<scalar>(mesh).interpolate(cellMask)
+                    );
+                    phi *= faceMask;
+                    U   *= cellMask;
 
                     // Make the flux relative to the mesh motion
                     fvc::makeRelative(phi, U);
@@ -182,14 +224,13 @@ int main(int argc, char *argv[])
                 }
             }
 
-            if (adjustFringe)
-            {
-                oversetAdjustPhi(phi, U, zoneIdMass);
-            }
-
             #include "alphaControls.H"
             #include "alphaEqnSubCycle.H"
 
+            const surfaceScalarField faceMask
+            (
+                localMin<scalar>(mesh).interpolate(cellMask)
+            );
             rhoPhi *= faceMask;
 
             relaxing.correct();
