@@ -166,7 +166,14 @@ void Foam::sampledSurfaceElevation::gatherAllSets()
     {
         const coordSet& coords = localSets[seti];
 
+        // globalIndex::reset API differs between versions:
+        // v2206: reset(label, gatherOnly{})
+        // v2406+: reset(gatherOnly{}, label)
+        #if OFVERSION >= 2400
+        globalIndices_[seti].reset(globalIndex::gatherOnly{}, coords.size());
+        #else
         globalIndices_[seti].reset(coords.size(), globalIndex::gatherOnly{});
+        #endif
         gatheredSets_.set(seti, coords.gatherSort(gatheredSorting_[seti]));
     }
 }
