@@ -82,8 +82,6 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createDynamicFvMesh.H"
     #include "initContinuityErrs.H"
-    pimpleControl pimple(mesh);
-    #include "createTimeControls.H"
 
     #include "readGravitationalAcceleration.H"
     #include "readWaveProperties.H"

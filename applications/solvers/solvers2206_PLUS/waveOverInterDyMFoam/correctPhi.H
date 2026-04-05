@@ -27,7 +27,7 @@
     wordList pcorrTypes
     (
         p_rgh.boundaryField().size(),
-        fvPatchFieldBase::zeroGradientType()
+        zeroGradientFvPatchScalarField::typeName
     );
 
     for (label i=0; i<p_rgh.boundaryField().size(); i++)
@@ -103,7 +103,7 @@
             {
                 if (refCells[zoneId] != -1)
                 {
-                    validCells.push_back(refCells[zoneId]);
+                    validCells.append(refCells[zoneId]);
                 }
             }
 
