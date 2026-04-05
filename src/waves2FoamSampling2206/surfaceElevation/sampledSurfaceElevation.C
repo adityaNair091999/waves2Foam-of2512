@@ -166,7 +166,7 @@ void Foam::sampledSurfaceElevation::gatherAllSets()
     {
         const coordSet& coords = localSets[seti];
 
-        globalIndices_[seti].reset(globalIndex::gatherOnly{}, coords.size());
+        globalIndices_[seti].reset(coords.size(), globalIndex::gatherOnly{});
         gatheredSets_.set(seti, coords.gatherSort(gatheredSorting_[seti]));
     }
 }

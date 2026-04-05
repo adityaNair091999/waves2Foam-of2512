@@ -1,0 +1,3 @@
+waveOverInterDyMFoam.C
+
+EXE = $(WAVES_APPBIN)/waveOverInterDyMFoam

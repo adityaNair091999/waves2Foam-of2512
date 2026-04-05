@@ -13,7 +13,7 @@ fi
 
 
 echo "====================================="
-echo "    COMPILE LAPACK-3.3.1"
+echo "    COMPILE/LOCATE LAPACK"
 echo "====================================="
 
 compileFlag=0
@@ -28,14 +28,67 @@ then
     compileFlag=1;
 fi
 
-if [ ! -f "$sourceLib/libtmglib_gfortran.a" ]
+## If WAVES_LAPACK_DIR is set, use system LAPACK instead of building 3.3.1
+if [ -n "$WAVES_LAPACK_DIR" ] && [ "$compileFlag" == "1" ]
 then
-    compileFlag=1;
-fi
+    echo
+    echo "WAVES_LAPACK_DIR is set: $WAVES_LAPACK_DIR"
+    echo "Using system LAPACK instead of building LAPACK 3.3.1"
+    echo
 
-## COMPILE LAPACK
-if [ "$compileFlag" == "1" ]
+    # Locate BLAS — try common naming conventions
+    blasFound=0
+    for candidate in \
+        "$WAVES_LAPACK_DIR/lib/libblas.a" \
+        "$WAVES_LAPACK_DIR/lib64/libblas.a" \
+        "$WAVES_LAPACK_DIR/lib/libopenblas.a" \
+        "$WAVES_LAPACK_DIR/lib64/libopenblas.a" \
+        "$WAVES_LAPACK_DIR/lib/libflexiblas.a"
+    do
+        if [ -f "$candidate" ]; then
+            cp "$candidate" "$sourceLib/libblas.a"
+            echo "Found BLAS: $candidate"
+            blasFound=1
+            break
+        fi
+    done
+
+    if [ "$blasFound" == "0" ]; then
+        echo "ERROR: Could not find BLAS library in $WAVES_LAPACK_DIR"
+        echo "Set WAVES_LAPACK_DIR to the root of your LAPACK/BLAS installation"
+        exit 1
+    fi
+
+    # Locate LAPACK — try common naming conventions
+    lapackFound=0
+    for candidate in \
+        "$WAVES_LAPACK_DIR/lib/liblapack.a" \
+        "$WAVES_LAPACK_DIR/lib64/liblapack.a" \
+        "$WAVES_LAPACK_DIR/lib/libopenblas.a" \
+        "$WAVES_LAPACK_DIR/lib64/libopenblas.a" \
+        "$WAVES_LAPACK_DIR/lib/libflexiblas.a"
+    do
+        if [ -f "$candidate" ]; then
+            cp "$candidate" "$sourceLib/liblapack_gfortran.a"
+            echo "Found LAPACK: $candidate"
+            lapackFound=1
+            break
+        fi
+    done
+
+    if [ "$lapackFound" == "0" ]; then
+        echo "ERROR: Could not find LAPACK library in $WAVES_LAPACK_DIR"
+        exit 1
+    fi
+
+    compileFlag=0
+
+## Otherwise build bundled LAPACK 3.3.1
+elif [ "$compileFlag" == "1" ]
 then
+    echo "Building bundled LAPACK 3.3.1 ..."
+    echo "(To use system LAPACK instead, set WAVES_LAPACK_DIR before running Allwmake)"
+
     # Unpack lapack-3.3.1
     tar -xzf lapack-3.3.1.tgz
 
@@ -49,7 +102,7 @@ then
     cd ..
 else
     echo
-    echo "lapack-3.3.1 has already been compiled"
+    echo "LAPACK has already been compiled/linked"
     echo
 fi
 

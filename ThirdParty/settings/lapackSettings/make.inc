@@ -19,8 +19,8 @@ PLAT = _gfortran
 #  selected.  Define LOADER and LOADOPTS to refer to the loader
 #  and desired load options for your machine.
 #
-FORTRAN  = gfortran -fimplicit-none -shared -fPIC -Wno-argument-mismatch
-OPTS     = 
+FORTRAN  = gfortran -fimplicit-none -shared -fPIC -Wno-argument-mismatch -fallow-argument-mismatch
+OPTS     = -std=legacy
 DRVOPTS  = $(OPTS)
 NOOPT    = -g -O0
 LOADER   = gfortran 
