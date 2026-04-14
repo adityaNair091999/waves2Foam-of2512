@@ -37,9 +37,9 @@ if [ -n "$flag" ]
 then
     if [ `uname` = "Darwin" ]
     then
-        version=`echo $WM_PROJECT_VERSION | sed -e 's/[v+-]/\'$'\n/g' | tr -d '\n'`
+        version=`echo $WM_PROJECT_VERSION | sed -e 's/[v+_-]/\'$'\n/g' | grep "^[0-9]" | head -1`
     else
-        version=`echo $WM_PROJECT_VERSION | sed -e 's/[v+-]/\n/g' | tr -d '\n'`
+        version=`echo $WM_PROJECT_VERSION | sed -e 's/[v+_-]/\n/g' | grep "^[0-9]" | head -1`
     fi
 fi
 
